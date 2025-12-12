@@ -1,71 +1,52 @@
+# ai_player.py
+
+from minimax import Minimax
+from alphabeta import AlphaBeta
+
 class AI_Player:
     def __init__(self, color, imp_algorithm):
         """
-        color: لون الذكاء الاصطناعي (1 أسود أو 2 أبيض)
-        imp_algorithm: كائن من كلاس Imp (Minimax + AlphaBeta + Heuristics)
+        color: 1 أو 2
+        imp_algorithm: كائن من Minimax أو AlphaBeta
         """
         self.color = color
-        self.imp = imp_algorithm
+        self.imp = imp_algorithm  # افتراض: imp لديه choose_move(board, my_player, opp_player)
 
-    def make_move(self, board, depth=3, use_alpha_beta=False):
-        """
-        يجعل الذكاء الاصطناعي يتخذ أفضل حركة متاحة.
-        
-        board: كائن اللوحة
-        depth: عمق البحث في Minimax
-        use_alpha_beta: استخدام Minimax + AlphaBeta أو Minimax العادي
-        """
+    def get_valid_moves(self, board):
+        N = len(board)
+        moves = []
+        for r in range(N):
+            for c in range(N):
+                if board[r][c] == 0:
+                    moves.append((r,c))
+        return moves
 
-        # 1) الحصول على كل الحركات المتاحة قبل اللعب
-        valid_moves = board.get_valid_moves()
+    def make_move(self, board, use_alpha_beta=False, opp_color=None):
+        """
+        board: list[list[int]]
+        use_alpha_beta: لو True هنستخدم imp.alphabeta (نفترض imp هو AlphaBeta)
+        opp_color: لون الخصم (لو None نفترض 3 - self.color)
+        يرجع tuple من الخانات اللي اتحطت فيها الحجارة
+        """
+        if opp_color is None:
+            opp_color = 1 if self.color == 2 else 2
+
+        valid_moves = self.get_valid_moves(board)
         if not valid_moves:
-            return None  # لا توجد حركات
+            return None
 
-        # ---------------------------------------------------------
-        # خيار 1: استخدام Minimax مع Alpha-Beta Pruning
-        # ---------------------------------------------------------
-        if use_alpha_beta:
-            best_score = float('-inf')
-            best_move = None
-
-            for move in valid_moves:
-                row, col = move
-
-                # محاكاة وضع الحجر
-                board.place_stone(row, col, self.color)
-
-                # تقييم الحركة باستخدام Alpha-Beta
-                score = self.imp.minimax_alpha_beta(
-                    board, depth - 1,
-                    alpha=float('-inf'),
-                    beta=float('inf'),
-                    maximizing=False,
-                    ai_color=self.color
-                )
-
-                # إلغاء المحاكاة
-                board.remove_stone(row, col)
-
-                # تحديث أفضل حركة
-                if score > best_score:
-                    best_score = score
-                    best_move = move
-
-            # تطبيق الحركة النهائية
-            row, col = best_move
-            board.place_stone(row, col, self.color)
-            return best_move
-
-        # ---------------------------------------------------------
-        # خيار 2: استخدام Minimax العادي عبر choose_move
-        # ---------------------------------------------------------
+        # استخدام AlphaBeta لو imp من النوع AlphaBeta وطلبت ذلك
+        if use_alpha_beta and isinstance(self.imp, AlphaBeta):
+            best_move, score = self.imp.choose_move(board, self.color, opp_color)
         else:
-            best_move = self.imp.choose_move(
-                board, depth,
-                maximizing_player=True,
-                color=self.color
-            )
+            # Minimax
+            best_move, score = self.imp.choose_move(board, self.color, opp_color)
 
-            row, col = best_move
-            board.place_stone(row, col, self.color)
-            return best_move
+        if best_move is None:
+            return None
+
+        # best_move قد تكون tuple من مواقع (combo)
+        for (r,c) in best_move:
+            board[r][c] = self.color
+
+        return best_move
