@@ -21,9 +21,9 @@ class AI_Player:
                     moves.append((r,c))
         return moves
 
-    def make_move(self, board, use_alpha_beta=False, opp_color=None):
+    def make_move(self, board_obj, use_alpha_beta=False, opp_color=None):
         """
-        board: list[list[int]]
+        board_obj: Board object
         use_alpha_beta: لو True هنستخدم imp.alphabeta (نفترض imp هو AlphaBeta)
         opp_color: لون الخصم (لو None نفترض 3 - self.color)
         يرجع tuple من الخانات اللي اتحطت فيها الحجارة
@@ -31,22 +31,22 @@ class AI_Player:
         if opp_color is None:
             opp_color = 1 if self.color == 2 else 2
 
-        valid_moves = self.get_valid_moves(board)
+        valid_moves = self.get_valid_moves(board_obj.grid)
         if not valid_moves:
             return None
 
         # استخدام AlphaBeta لو imp من النوع AlphaBeta وطلبت ذلك
         if use_alpha_beta and isinstance(self.imp, AlphaBeta):
-            best_move, score = self.imp.choose_move(board, self.color, opp_color)
+            best_move, score = self.imp.choose_move(board_obj.grid, self.color, opp_color)
         else:
             # Minimax
-            best_move, score = self.imp.choose_move(board, self.color, opp_color)
+            best_move, score = self.imp.choose_move(board_obj.grid, self.color, opp_color)
 
         if best_move is None:
             return None
 
-        # best_move قد تكون tuple من مواقع (combo)
-        for (r,c) in best_move:
-            board[r][c] = self.color
+        # تطبيق الحركة على Board object نفسه
+        board_obj.apply_move(best_move, self.color)
 
         return best_move
+
