@@ -157,6 +157,56 @@ class Connect6GUI:
             messagebox.showwarning("Invalid Move", "Please select an empty cell within the board.")
             return
 
+        # First move: only one stone
+        if self.controller._moves_played == 0:
+            move_combo = [(r, c)]
+            res = self.controller.play_move(move_combo)
+            if res is None:
+                messagebox.showerror("Invalid Move", "Move rejected.")
+            else:
+                self.draw_board()
+                self.update_status()
+                if not self.controller.game_over and isinstance(self.controller.current_player, AIClass):
+                    self.run_ai_in_background()
+            return
+
+        # Subsequent moves: two stones
+        if self.first_stone_pos is None:
+            self.first_stone_pos = (r, c)
+            self.update_status(extra="First stone selected. Place your second stone.")
+            self.draw_board()
+            return
+        second_stone_pos = (r, c)
+        if second_stone_pos == self.first_stone_pos:
+            messagebox.showwarning("Invalid Move", "Second stone must be in a different cell.")
+            return
+
+        move_combo = [self.first_stone_pos, second_stone_pos]
+        res = self.controller.play_move(move_combo)
+        self.first_stone_pos = None
+
+        if res is None:
+            messagebox.showerror("Invalid Move", "Move rejected.")
+        else:
+            self.draw_board()
+            self.update_status()
+            if not self.controller.game_over and isinstance(self.controller.current_player, AIClass):
+                self.run_ai_in_background()
+        if self.controller.game_over or self._ai_running:
+            return
+
+        from Ai_Player import AI_Player as AIClass
+        if isinstance(self.controller.current_player, AIClass):
+            messagebox.showinfo("Turn", "It's the AI's turn!")
+            return
+
+        c = (event.x - self.board_padding) // self.cell_size
+        r = (event.y - self.board_padding) // self.cell_size
+
+        if not (0 <= r < self.board.size and 0 <= c < self.board.size) or self.board.grid[r][c] != Board.EMPTY:
+            messagebox.showwarning("Invalid Move", "Please select an empty cell within the board.")
+            return
+
         if self.first_stone_pos is None:
             self.first_stone_pos = (r, c)
             self.update_status(extra="First stone selected. Place your second stone.")
