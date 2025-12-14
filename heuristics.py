@@ -14,39 +14,35 @@ def longest_chain_open(board, player):
     N = len(board)
     best_length = 0
     best_open = 0
-
     for r in range(N):
         for c in range(N):
             if board[r][c] != player:
                 continue
-
             for dr, dc in DIRS:
-                left  = count_stones(board, r-dr, c-dc, -dr, -dc, player)
-                right = count_stones(board, r+dr, c+dc,  dr,  dc, player)
+                left  = count_stones(board, r - dr, c - dc, -dr, -dc, player)
+                right = count_stones(board, r + dr, c + dc,  dr,  dc, player)
                 length = left + 1 + right
-
-                # open ends
-                end1_r = r - (left + 1)*dr
-                end1_c = c - (left + 1)*dc
-                end2_r = r + (right + 1)*dr
-                end2_c = c + (right + 1)*dc
-
+                end1_r = r - (left + 1) * dr
+                end1_c = c - (left + 1) * dc
+                end2_r = r + (right + 1) * dr
+                end2_c = c + (right + 1) * dc
                 def is_open(rr, cc):
                     return 0 <= rr < N and 0 <= cc < N and board[rr][cc] == 0
-
                 open_ends = int(is_open(end1_r, end1_c)) + int(is_open(end2_r, end2_c))
-
-                # use chain only if there's at least one open end
                 if open_ends > 0 and length > best_length:
                     best_length = length
                     best_open = open_ends
-
     return best_length, best_open
 
-def heuristic1(board, my_player, opp_player):
+def heuristic1(board, my_player, opp_player, win_k=6, depth=None):
     my_len, my_open = longest_chain_open(board, my_player)
     opp_len, opp_open = longest_chain_open(board, opp_player)
-    return my_len * my_open - opp_len * opp_open
+    score = my_len * my_open - opp_len * opp_open
+    if opp_len >= win_k - 1 and opp_open > 0:
+        score -= 5000
+    if my_len >= win_k - 1 and my_open > 0:
+        score += 5000
+    return score
 
 def mobility(board, player):
     N = len(board)
@@ -70,7 +66,7 @@ def threat(board, player):
 
 def center_control(board, player):
     N = len(board)
-    midR, midC = (N-1)//2, (N-1)//2
+    midR, midC = (N - 1) // 2, (N - 1) // 2
     total = 0
     for r in range(N):
         for c in range(N):
@@ -79,7 +75,7 @@ def center_control(board, player):
                 total += -dist
     return total
 
-def heuristic2(board, my_player, opp_player, A=2, B=3, C=1):
+def heuristic2(board, my_player, opp_player, A=2, B=3, C=1, win_k=6, depth=None):
     my_mob  = mobility(board, my_player)
     opp_mob = mobility(board, opp_player)
     my_threat  = threat(board, my_player)
@@ -90,4 +86,15 @@ def heuristic2(board, my_player, opp_player, A=2, B=3, C=1):
     h = (A * (my_mob - opp_mob)
        + B * (my_threat - opp_threat)
        + C * (my_center - opp_center))
+
+    my_len, my_open = longest_chain_open(board, my_player)
+    opp_len, opp_open = longest_chain_open(board, opp_player)
+    if opp_len >= win_k - 1 and opp_open > 0:
+        h -= 5000
+    if my_len >= win_k - 1 and my_open > 0:
+        h += 5000
+
+    if depth is not None and depth >= 3:
+        h += 2 * (my_threat - opp_threat)
+
     return h
